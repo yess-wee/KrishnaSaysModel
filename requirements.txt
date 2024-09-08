@@ -1,0 +1,10 @@
+streamlit
+langchain
+langchain-google-genai
+langchain-chroma
+python-dotenv
+crewai-tools
+protobuf==4.21.6
+tensorflow-metadata
+langchain_huggingface
+langchain-groq
