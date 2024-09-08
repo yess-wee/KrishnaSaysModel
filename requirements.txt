@@ -9,7 +9,7 @@ protobuf==4.21.6
 tensorflow-metadata
 langchain-huggingface
 langchain-groq
-chromadb
+chromadb==0.3.23
 google-auth
 google-auth-oauthlib
 google-api-python-client
