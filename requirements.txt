@@ -1,4 +1,4 @@
-# Python packages
+# requirements.txt
 streamlit
 langchain
 langchain-google-genai
