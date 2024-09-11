@@ -14,3 +14,5 @@ huggingface-hub
 pypdf2
 pdfplumber
 pysqlite3-binary
+langchain-groq
+
