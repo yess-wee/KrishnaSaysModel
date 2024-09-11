@@ -13,4 +13,3 @@ google-api-python-client
 huggingface-hub
 pypdf2
 pdfplumber
-sqlite3>=3.35.5
