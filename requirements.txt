@@ -15,4 +15,4 @@ pypdf2
 pdfplumber
 pysqlite3-binary
 langchain-groq
-
+langchain_huggingface
