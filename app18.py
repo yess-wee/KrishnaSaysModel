@@ -35,6 +35,7 @@ embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
 
 
 faiss_index_path = r"D:\KrishnaSaysDB\faiss_index"
+print(os.listdir(directory))
 
 if os.path.exists(faiss_index_path):
 
