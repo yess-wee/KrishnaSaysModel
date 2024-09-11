@@ -25,7 +25,7 @@ HUGGINGFACEHUB_API_TOKEN = os.getenv('HUGGINGFACEHUB_API_TOKEN')
 st.title("When Krishna says that....")
 
 # loader = PyPDFLoader("/content/The_Journey_of_Self_Discovery.pdf")
-loader = PyPDFLoader("https://github.com/yess-wee/KrishnaSaysModel/blob/main/The_Journey_of_Self_Discovery.pdf")
+loader = PyPDFLoader("The_Journey_of_Self_Discovery.pdf")
 data = loader.load()
 
 text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000)
@@ -61,7 +61,7 @@ llm = ChatGoogleGenerativeAI(
 )
 
 rag_tool = PDFSearchTool(
-    pdf='https://github.com/yess-wee/KrishnaSaysModel/blob/main/The_Journey_of_Self_Discovery.pdf',
+    pdf='The_Journey_of_Self_Discovery.pdf',
     config=dict(
         llm=dict(
             provider="groq",  
