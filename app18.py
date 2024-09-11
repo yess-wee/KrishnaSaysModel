@@ -34,7 +34,7 @@ docs = text_splitter.split_documents(data)
 embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
 
 
-faiss_index_path = "faiss_index"
+faiss_index_path = "D:\KrishnaSaysDB\faiss_index"
 
 if os.path.exists(faiss_index_path):
 
