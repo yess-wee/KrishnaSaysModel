@@ -11,5 +11,5 @@ huggingface-hub==0.13.4
 pypdf2==3.0.1
 pdfplumber==0.5.28
 pysqlite3-binary==0.5.3
-langchain-groq==0.2.0
-langchain_huggingface==0.0.1
+faiss-cpu==1.7.3
+sentence-transformers==2.2.2
