@@ -1,39 +1,18 @@
-# Streamlit for the web app interface
-streamlit==1.24.0
-
-# LangChain-related packages for document processing, embeddings, and integrations
+streamlit==1.38.0
 langchain==0.0.112
 langchain-google-genai==0.0.4
-langchain-community==0.1.1
-langchain-groq==0.2.0
-langchain_huggingface==0.0.1
-
-# PDF processing tools
-pypdf2==3.0.1
-pdfplumber==0.5.28
-
-# Tools for AI-powered search and PDF handling
-crewai-tools==0.1.0
-
-# FAISS for vector search indexing (CPU version)
-faiss-cpu==1.7.4
-
-# Environment variables management
+langchain-community==0.2.1  # Updated version
+crewai-tools==0.1.0  # Check for the correct version
 python-dotenv==0.21.0
-
-# Google authentication and API client for Google integrations
+faiss-cpu==1.7.4
+protobuf==4.21.6
+tensorflow-metadata==1.12.0
 google-auth==2.21.0
 google-auth-oauthlib==1.0.0
 google-api-python-client==2.70.0
-
-# TensorFlow metadata required for certain data processing tasks
-tensorflow-metadata==1.12.0
-
-# Protobuf version compatibility (for TensorFlow and other Google-related tools)
-protobuf==4.21.6
-
-# SQLite3 for database handling (pysqlite3-binary required for Streamlit Cloud)
-pysqlite3-binary==0.4.6
-
-# Hugging Face Hub for model and dataset management
 huggingface-hub==0.13.4
+pypdf2==3.0.1
+pdfplumber==0.5.28
+pysqlite3-binary==0.4.6
+langchain-groq==0.2.0
+langchain_huggingface==0.0.1
