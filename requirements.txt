@@ -14,3 +14,4 @@ pysqlite3-binary==0.5.3
 sentence-transformers==2.2.2
 tokenizers==0.13.3 --prefer-binary
 faiss-cpu==1.7.0 --prefer-binary
+
