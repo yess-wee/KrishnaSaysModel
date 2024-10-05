@@ -81,21 +81,44 @@ if uploaded_pdf is not None:
         st.write(chunk)
 
 
+# @st.cache_resource
+# def get_vectorstore():
+#     faiss_index_path = "krishna_says_faiss_index_multilingual"
+    
+#     if os.path.exists(faiss_index_path):
+#         return FAISS.load_local(faiss_index_path, sentence_model.encode, allow_dangerous_deserialization=True)
+#     else:   
+#         docs = load_and_process_pdf("/content/The_Journey_of_Self_Discovery.pdf")
+#         texts = [doc.page_content for doc in docs]
+#         embeddings = sentence_model.encode(texts)
+#         vectorstore = FAISS.from_embeddings(zip(texts, embeddings), sentence_model.encode)
+#         vectorstore.save_local(faiss_index_path)
+#         return vectorstore
+
+# vectorstore = get_vectorstore()
+
 @st.cache_resource
 def get_vectorstore():
     faiss_index_path = "krishna_says_faiss_index_multilingual"
-    
+
     if os.path.exists(faiss_index_path):
         return FAISS.load_local(faiss_index_path, sentence_model.encode, allow_dangerous_deserialization=True)
-    else:   
-        docs = load_and_process_pdf("/content/The_Journey_of_Self_Discovery.pdf")
-        texts = [doc.page_content for doc in docs]
-        embeddings = sentence_model.encode(texts)
-        vectorstore = FAISS.from_embeddings(zip(texts, embeddings), sentence_model.encode)
-        vectorstore.save_local(faiss_index_path)
-        return vectorstore
+    else:
+        # Use Streamlit file uploader to upload the PDF file
+        uploaded_file = st.file_uploader("Upload the PDF file for processing", type="pdf")
+        if uploaded_file is not None:
+            docs = load_and_process_pdf(uploaded_file)
+            texts = [doc.page_content for doc in docs]
+            embeddings = sentence_model.encode(texts)
+            vectorstore = FAISS.from_embeddings(zip(texts, embeddings), sentence_model.encode)
+            vectorstore.save_local(faiss_index_path)
+            return vectorstore
+        else:
+            st.error("Please upload a PDF file.")
+            return None
 
 vectorstore = get_vectorstore()
+
 
 
 def translate(text, source='auto', target='en'):
