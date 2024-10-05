@@ -45,12 +45,41 @@ def load_models():
 
 sentence_model, tokenizer, relevance_model = load_models()
 
+# @st.cache_resource
+# def load_and_process_pdf(pdf_path):
+#     loader = PyPDFLoader(pdf_path)
+#     data = loader.load()
+#     text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+#     return text_splitter.split_documents(data)
+
+
 @st.cache_resource
-def load_and_process_pdf(pdf_path):
-    loader = PyPDFLoader(pdf_path)
+def load_and_process_pdf(uploaded_file):
+    # Saving the uploaded PDF temporarily
+    with open("uploaded_pdf.pdf", "wb") as f:
+        f.write(uploaded_file.getbuffer())
+
+    # Load the PDF using PyPDFLoader
+    loader = PyPDFLoader("uploaded_pdf.pdf")
     data = loader.load()
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+    
+    # Process the PDF into chunks
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
     return text_splitter.split_documents(data)
+
+# Streamlit File Uploader
+uploaded_pdf = st.file_uploader("Upload a PDF file", type="pdf")
+
+# If a PDF is uploaded, process it
+if uploaded_pdf is not None:
+    st.write("Processing the PDF...")
+    chunks = load_and_process_pdf(uploaded_pdf)
+    
+    st.write(f"Processed {len(chunks)} chunks of text.")
+    for i, chunk in enumerate(chunks):
+        st.write(f"**Chunk {i+1}:**")
+        st.write(chunk)
+
 
 @st.cache_resource
 def get_vectorstore():
