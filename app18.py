@@ -104,7 +104,6 @@ def get_vectorstore():
     if os.path.exists(faiss_index_path):
         return FAISS.load_local(faiss_index_path, sentence_model.encode, allow_dangerous_deserialization=True)
     else:
-        # Use Streamlit file uploader to upload the PDF file
         uploaded_file = st.file_uploader("Upload the PDF file for processing", type="pdf")
         if uploaded_file is not None:
             docs = load_and_process_pdf(uploaded_file)
@@ -116,6 +115,7 @@ def get_vectorstore():
         else:
             st.error("Please upload a PDF file.")
             return None
+
 
 vectorstore = get_vectorstore()
 
