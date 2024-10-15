@@ -19,15 +19,16 @@ genai.configure(api_key=GOOGLE_API_KEY)
 # Streamlit page configuration
 st.set_page_config(page_title="Krishna Says", page_icon="🕉️", layout="wide")
 
-# Custom CSS with animations and black background
+# Custom CSS
 st.markdown("""
 <style>
     .stApp {
-        background-color: #000000;
+        background-image: url('https://wallpapercave.com/wp/wp3037399.jpg');
+        background-size: cover;
     }
     .stTextInput > div > div > input {
-        background-color: rgba(255, 255, 255, 0.1);
-        color: #FFD700;
+        background-color: rgba(255, 255, 255, 0.8);
+        border-radius: 10px;
     }
     .stMarkdown {
         color: #FFD700;
@@ -35,79 +36,168 @@ st.markdown("""
     .css-1wbqy5l {
         background-color: rgba(25, 25, 112, 0.7);
     }
-    @keyframes flute-animation {
-        0% { transform: rotate(0deg); }
-        50% { transform: rotate(5deg); }
-        100% { transform: rotate(0deg); }
+    .stButton {
+        background-color: rgba(255, 215, 0, 0.8);
+        border: none;
+        border-radius: 10px;
     }
-    .flute-icon {
-        animation: flute-animation 3s infinite;
-        display: inline-block;
-    }
-    @keyframes peacock-feather-animation {
-        0% { transform: translateY(0px); }
-        50% { transform: translateY(-10px); }
-        100% { transform: translateY(0px); }
-    }
-    .peacock-feather {
-        animation: peacock-feather-animation 4s infinite;
-        display: inline-block;
-    }
-    .st-emotion-cache-10trblm {
-        position: relative;
-        overflow: hidden;
-    }
-    .st-emotion-cache-10trblm::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: -100%;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(255,215,0,0.2), transparent);
-        animation: shine 3s infinite;
-    }
-    @keyframes shine {
-        100% { left: 100%; }
-    }
-    .stButton > button {
-        background-color: #4B0082;
+    .stExpanderHeader {
+        font-weight: bold;
         color: #FFD700;
-        border: 2px solid #FFD700;
-    }
-    .stButton > button:hover {
-        background-color: #800080;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# Rest of your code remains the same...
+@st.cache_resource
+def load_models():
+    try:
+        sentence_model = SentenceTransformer('sentence-transformers/distiluse-base-multilingual-cased-v1')
+        tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased-finetuned-sst-2-english")
+        model = AutoModelForSequenceClassification.from_pretrained("distilbert-base-uncased-finetuned-sst-2-english")
+        return sentence_model, tokenizer, model
+    except Exception as e:
+        st.error(f"Error loading models: {e}")
+
+sentence_model, tokenizer, relevance_model = load_models()
+
+@st.cache_resource
+def load_and_process_pdf(uploaded_file):
+    with st.spinner("Processing PDF..."):
+        try:
+            with open("uploaded_pdf.pdf", "wb") as f:
+                f.write(uploaded_file.getbuffer())
+            loader = PyPDFLoader("uploaded_pdf.pdf")
+            data = loader.load()
+            text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
+            return text_splitter.split_documents(data)
+        except Exception as e:
+            st.error(f"Error processing PDF: {e}")
+            return []
+
+@st.cache_resource
+def get_vectorstore():
+    faiss_index_path = "krishna_says_faiss_index_multilingual"
+
+    if os.path.exists(faiss_index_path):
+        try:
+            return FAISS.load_local(faiss_index_path, sentence_model.encode, allow_dangerous_deserialization=True)
+        except Exception as e:
+            st.error(f"Error loading existing index: {e}")
+
+    uploaded_file = st.file_uploader("Upload the PDF file for processing", type="pdf", label_visibility="collapsed")
+    if uploaded_file is not None:
+        with st.spinner("Processing PDF and creating index..."):
+            docs = load_and_process_pdf(uploaded_file)
+            if not docs:
+                return None
+            
+            texts = [doc.page_content for doc in docs]
+            embeddings = sentence_model.encode(texts)
+            vectorstore = FAISS.from_embeddings(zip(texts, embeddings), sentence_model.encode)
+
+            try:
+                vectorstore.save_local(faiss_index_path)
+                st.success("Index created and saved successfully.")
+            except Exception as e:
+                st.error(f"Error saving index: {e}")
+            
+            return vectorstore
+    else:
+        st.error("Please upload a PDF file to create the index.")
+        return None
+
+def translate(text, source='auto', target='en'):
+    try:
+        return GoogleTranslator(source=source, target=target).translate(text)
+    except Exception as e:
+        st.error(f"Translation error: {e}")
+        return text  # Return the original text if translation fails
+
+def llm_extract_relevant_text(query, context, tokenizer, model):
+    try:
+        inputs = tokenizer(query, context, return_tensors="pt", truncation=True, max_length=512, padding=True)
+        outputs = model(**inputs)
+        relevance_scores = torch.nn.functional.softmax(outputs.logits, dim=1)[:, 1]
+
+        sentences = context.split('.')
+        sentence_scores = []
+        for sentence in sentences:
+            inputs = tokenizer(query, sentence, return_tensors="pt", truncation=True, max_length=512, padding=True)
+            outputs = model(**inputs)
+            score = torch.nn.functional.softmax(outputs.logits, dim=1)[0, 1].item()
+            sentence_scores.append((sentence, score))
+
+        sentence_scores.sort(key=lambda x: x[1], reverse=True)
+        top_sentences = [s[0] for s in sentence_scores[:10]]  # top 10 most relevant sentences
+        return ' '.join(top_sentences)
+    except Exception as e:
+        st.error(f"Error extracting relevant text: {e}")
+        return ""
+
+def rag_function(query, vectorstore, llm_model, tokenizer, relevance_model, use_gujarati=False):
+    if vectorstore is None:
+        return "Error: Vectorstore not initialized. Please upload a PDF.", ""
+
+    try:
+        retriever = vectorstore.as_retriever(search_kwargs={"k": 5})
+        relevant_docs = retriever.get_relevant_documents(query)
+        context = "\n".join([doc.page_content for doc in relevant_docs])
+    except Exception as e:
+        st.error(f"Error retrieving documents: {e}")
+        return "Error retrieving documents.", ""
+
+    if use_gujarati:
+        english_query = translate(query, source='gu', target='en')
+    else:
+        english_query = query
+
+    relevant_text = llm_extract_relevant_text(english_query, context, tokenizer, relevance_model)
+
+    prompt = f"""
+    Based on Krishna's teachings, answer the following question using the given context.
+    If the answer is not in the context, draw from Krishna's wisdom to provide guidance.
+    Respond in a humble and spiritual manner, offering solace and enlightenment to the seeker.
+
+    Context: {relevant_text}
+    Question: {english_query}
+    Krishna's answer:
+    """
+    
+    try:
+        response = llm_model.generate_content(prompt).text
+    except Exception as e:
+        st.error(f"Error generating response: {e}")
+        return "Error generating response.", ""
+
+    if use_gujarati:
+        response = translate(response, source='en', target='gu')
+        relevant_text = translate(relevant_text, source='en', target='gu')
+    
+    return response, relevant_text
 
 # Main Streamlit app
-st.title("🕉️ Krishna Says 🕉️")
-st.markdown("<div class='flute-icon'>🎶</div> <div class='peacock-feather'>🦚</div>", unsafe_allow_html=True)
+st.title("Krishna Says")
 
 vectorstore = get_vectorstore()
 
 st.sidebar.title("Language Selection")
 use_gujarati = st.sidebar.checkbox("Ask in Gujarati")
 
-query = st.text_input("Ask Krishna for guidance:" if not use_gujarati else "તમારો પ્રશ્ન ગુજરાતીમાં પૂછો:")
+query = st.text_input("Ask Krishna for guidance:" if not use_gujarati else "તમારો પ્રશ્ન ગુજરાતીમાં પૂછો:", "")
 
 if query:
     st.write("Your question to Krishna:")
     st.markdown(f"**{query}**")
 
-    with st.spinner("Krishna is contemplating... 🧘"):
+    with st.spinner("Krishna is contemplating..."):
         llm_model = genai.GenerativeModel('gemini-pro')
         response, context = rag_function(query, vectorstore, llm_model, tokenizer, relevance_model, use_gujarati)
 
     st.subheader("Krishna says:")
-    st.markdown(f'<p style="color: #FFD700; font-style: italic; text-shadow: 0 0 5px #FFA500;">{response}</p>', unsafe_allow_html=True)
+    st.markdown(f'<p style="color: #FFD700; font-style: italic;">{response}</p>', unsafe_allow_html=True)
 
-    with st.expander("View Relevant Teachings"):
+    with st.expander("View Relevant Teachings", expanded=False):
         st.write(context)
 
-if st.button("Was Krishna's wisdom helpful? 🙏"):
-    st.balloons()
+if st.button("Was Krishna's wisdom helpful?"):
     st.write("🕉️ Always remember... Krushnam sadasahayate..🕉️")
