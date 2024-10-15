@@ -12,7 +12,7 @@ from deep_translator import GoogleTranslator
 
 # Load environment variables and configure Google API
 load_dotenv()
-os.environ['GOOGLE_API_KEY'] = 'AIzaSyAQmgOq7z-n3yCotriI6-W3wpzIDap6Xqg'  # Replace with your actual API key
+os.environ['GOOGLE_API_KEY'] = 'AIzaSyAQmgOq7z-n3yCotriI6-W3wpzIDap6Xqg'
 GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
 genai.configure(api_key=GOOGLE_API_KEY)
 
@@ -47,21 +47,19 @@ def load_models():
         return sentence_model, tokenizer, model
     except Exception as e:
         st.error(f"Error loading models: {e}")
-        return None, None, None
 
 sentence_model, tokenizer, relevance_model = load_models()
 
 @st.cache_resource
 def load_and_process_pdf(uploaded_file):
-    if uploaded_file is not None:
+    with st.spinner("Processing PDF..."):
         try:
-            with st.spinner("Processing PDF..."):
-                with open("uploaded_pdf.pdf", "wb") as f:
-                    f.write(uploaded_file.getbuffer())
-                loader = PyPDFLoader("uploaded_pdf.pdf")
-                data = loader.load()
-                text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
-                return text_splitter.split_documents(data)
+            with open("uploaded_pdf.pdf", "wb") as f:
+                f.write(uploaded_file.getbuffer())
+            loader = PyPDFLoader("uploaded_pdf.pdf")
+            data = loader.load()
+            text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
+            return text_splitter.split_documents(data)
         except Exception as e:
             st.error(f"Error processing PDF: {e}")
             return []
@@ -86,57 +84,65 @@ def get_vectorstore():
             texts = [doc.page_content for doc in docs]
             embeddings = sentence_model.encode(texts)
             vectorstore = FAISS.from_embeddings(zip(texts, embeddings), sentence_model.encode)
-            
+
             try:
                 vectorstore.save_local(faiss_index_path)
                 st.success("Index created and saved successfully.")
-                return vectorstore
             except Exception as e:
                 st.error(f"Error saving index: {e}")
             
-    st.error("Please upload a PDF file to create the index.")
-    return None
+            return vectorstore
+    else:
+        st.error("Please upload a PDF file to create the index.")
+        return None
 
 def translate(text, source='auto', target='en'):
     try:
         return GoogleTranslator(source=source, target=target).translate(text)
     except Exception as e:
         st.error(f"Translation error: {e}")
-        return text
+        return text  # Return the original text if translation fails
 
 def llm_extract_relevant_text(query, context, tokenizer, model):
-    inputs = tokenizer(query, context, return_tensors="pt", truncation=True, max_length=512, padding=True)
-    outputs = model(**inputs)
-    relevance_scores = torch.nn.functional.softmax(outputs.logits, dim=1)[:, 1]
-    
-    sentences = context.split('.')
-    sentence_scores = []
-    for sentence in sentences:
-        inputs = tokenizer(query, sentence, return_tensors="pt", truncation=True, max_length=512, padding=True)
+    try:
+        inputs = tokenizer(query, context, return_tensors="pt", truncation=True, max_length=512, padding=True)
         outputs = model(**inputs)
-        score = torch.nn.functional.softmax(outputs.logits, dim=1)[0, 1].item()
-        sentence_scores.append((sentence, score))
-    
-    sentence_scores.sort(key=lambda x: x[1], reverse=True)
-    top_sentences = [s[0] for s in sentence_scores[:10]]  # top 10 most relevant sentences
-    return ' '.join(top_sentences)
+        relevance_scores = torch.nn.functional.softmax(outputs.logits, dim=1)[:, 1]
+
+        sentences = context.split('.')
+        sentence_scores = []
+        for sentence in sentences:
+            inputs = tokenizer(query, sentence, return_tensors="pt", truncation=True, max_length=512, padding=True)
+            outputs = model(**inputs)
+            score = torch.nn.functional.softmax(outputs.logits, dim=1)[0, 1].item()
+            sentence_scores.append((sentence, score))
+
+        sentence_scores.sort(key=lambda x: x[1], reverse=True)
+        top_sentences = [s[0] for s in sentence_scores[:10]]  # top 10 most relevant sentences
+        return ' '.join(top_sentences)
+    except Exception as e:
+        st.error(f"Error extracting relevant text: {e}")
+        return ""
 
 def rag_function(query, vectorstore, llm_model, tokenizer, relevance_model, use_gujarati=False):
     if vectorstore is None:
         return "Error: Vectorstore not initialized. Please upload a PDF.", ""
 
-    retriever = vectorstore.as_retriever(search_kwargs={"k": 5})
-    relevant_docs = retriever.get_relevant_documents(query)
-    
-    context = "\n".join([doc.page_content for doc in relevant_docs])
-    
+    try:
+        retriever = vectorstore.as_retriever(search_kwargs={"k": 5})
+        relevant_docs = retriever.get_relevant_documents(query)
+        context = "\n".join([doc.page_content for doc in relevant_docs])
+    except Exception as e:
+        st.error(f"Error retrieving documents: {e}")
+        return "Error retrieving documents.", ""
+
     if use_gujarati:
         english_query = translate(query, source='gu', target='en')
     else:
         english_query = query
-    
+
     relevant_text = llm_extract_relevant_text(english_query, context, tokenizer, relevance_model)
-  
+
     prompt = f"""
     Based on Krishna's teachings, answer the following question using the given context.
     If the answer is not in the context, draw from Krishna's wisdom to provide guidance.
@@ -150,7 +156,7 @@ def rag_function(query, vectorstore, llm_model, tokenizer, relevance_model, use_
     try:
         response = llm_model.generate_content(prompt).text
     except Exception as e:
-        st.error(f"Error generating content: {e}")
+        st.error(f"Error generating response: {e}")
         return "Error generating response.", ""
 
     if use_gujarati:
@@ -172,18 +178,14 @@ query = st.text_input("Ask Krishna for guidance:" if not use_gujarati else "àª¤à
 if query:
     st.write("Your question to Krishna:")
     st.markdown(f"**{query}**")
-    
+
     with st.spinner("Krishna is contemplating..."):
-        try:
-            llm_model = genai.GenerativeModel('gemini-pro')
-            response, context = rag_function(query, vectorstore, llm_model, tokenizer, relevance_model, use_gujarati)
-        except Exception as e:
-            st.error(f"Error during processing: {e}")
-            response, context = "Error processing your request.", ""
+        llm_model = genai.GenerativeModel('gemini-pro')
+        response, context = rag_function(query, vectorstore, llm_model, tokenizer, relevance_model, use_gujarati)
 
     st.subheader("Krishna says:")
     st.markdown(f'<p style="color: #FFD700; font-style: italic;">{response}</p>', unsafe_allow_html=True)
-    
+
     with st.expander("View Relevant Teachings"):
         st.write(context)
 
