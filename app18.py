@@ -12,7 +12,7 @@ from deep_translator import GoogleTranslator
 
 # Load environment variables and configure Google API
 load_dotenv()
-os.environ['GOOGLE_API_KEY'] = 'AIzaSyAQmgOq7z-n3yCotriI6-W3wpzIDap6Xqg'
+os.environ['GOOGLE_API_KEY'] = 'AIzaSyAQmgOq7z-n3yCotriI6-W3wpzIDap6Xqg'  # Replace with your actual API key
 GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
 genai.configure(api_key=GOOGLE_API_KEY)
 
@@ -40,22 +40,31 @@ st.markdown("""
 
 @st.cache_resource
 def load_models():
-    sentence_model = SentenceTransformer('sentence-transformers/distiluse-base-multilingual-cased-v1')
-    tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased-finetuned-sst-2-english")
-    model = AutoModelForSequenceClassification.from_pretrained("distilbert-base-uncased-finetuned-sst-2-english")
-    return sentence_model, tokenizer, model
+    try:
+        sentence_model = SentenceTransformer('sentence-transformers/distiluse-base-multilingual-cased-v1')
+        tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased-finetuned-sst-2-english")
+        model = AutoModelForSequenceClassification.from_pretrained("distilbert-base-uncased-finetuned-sst-2-english")
+        return sentence_model, tokenizer, model
+    except Exception as e:
+        st.error(f"Error loading models: {e}")
+        return None, None, None
 
 sentence_model, tokenizer, relevance_model = load_models()
 
 @st.cache_resource
 def load_and_process_pdf(uploaded_file):
-    with st.spinner("Processing PDF..."):
-        with open("uploaded_pdf.pdf", "wb") as f:
-            f.write(uploaded_file.getbuffer())
-        loader = PyPDFLoader("uploaded_pdf.pdf")
-        data = loader.load()
-        text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
-        return text_splitter.split_documents(data)
+    if uploaded_file is not None:
+        try:
+            with st.spinner("Processing PDF..."):
+                with open("uploaded_pdf.pdf", "wb") as f:
+                    f.write(uploaded_file.getbuffer())
+                loader = PyPDFLoader("uploaded_pdf.pdf")
+                data = loader.load()
+                text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
+                return text_splitter.split_documents(data)
+        except Exception as e:
+            st.error(f"Error processing PDF: {e}")
+            return []
 
 @st.cache_resource
 def get_vectorstore():
@@ -71,6 +80,9 @@ def get_vectorstore():
     if uploaded_file is not None:
         with st.spinner("Processing PDF and creating index..."):
             docs = load_and_process_pdf(uploaded_file)
+            if not docs:
+                return None
+            
             texts = [doc.page_content for doc in docs]
             embeddings = sentence_model.encode(texts)
             vectorstore = FAISS.from_embeddings(zip(texts, embeddings), sentence_model.encode)
@@ -78,16 +90,19 @@ def get_vectorstore():
             try:
                 vectorstore.save_local(faiss_index_path)
                 st.success("Index created and saved successfully.")
+                return vectorstore
             except Exception as e:
                 st.error(f"Error saving index: {e}")
             
-            return vectorstore
-    else:
-        st.error("Please upload a PDF file to create the index.")
-        return None
+    st.error("Please upload a PDF file to create the index.")
+    return None
 
 def translate(text, source='auto', target='en'):
-    return GoogleTranslator(source=source, target=target).translate(text)
+    try:
+        return GoogleTranslator(source=source, target=target).translate(text)
+    except Exception as e:
+        st.error(f"Translation error: {e}")
+        return text
 
 def llm_extract_relevant_text(query, context, tokenizer, model):
     inputs = tokenizer(query, context, return_tensors="pt", truncation=True, max_length=512, padding=True)
@@ -131,7 +146,12 @@ def rag_function(query, vectorstore, llm_model, tokenizer, relevance_model, use_
     Question: {english_query}
     Krishna's answer:
     """
-    response = llm_model.generate_content(prompt).text
+    
+    try:
+        response = llm_model.generate_content(prompt).text
+    except Exception as e:
+        st.error(f"Error generating content: {e}")
+        return "Error generating response.", ""
 
     if use_gujarati:
         response = translate(response, source='en', target='gu')
@@ -154,9 +174,13 @@ if query:
     st.markdown(f"**{query}**")
     
     with st.spinner("Krishna is contemplating..."):
-        llm_model = genai.GenerativeModel('gemini-pro')
-        response, context = rag_function(query, vectorstore, llm_model, tokenizer, relevance_model, use_gujarati)
-    
+        try:
+            llm_model = genai.GenerativeModel('gemini-pro')
+            response, context = rag_function(query, vectorstore, llm_model, tokenizer, relevance_model, use_gujarati)
+        except Exception as e:
+            st.error(f"Error during processing: {e}")
+            response, context = "Error processing your request.", ""
+
     st.subheader("Krishna says:")
     st.markdown(f'<p style="color: #FFD700; font-style: italic;">{response}</p>', unsafe_allow_html=True)
     
