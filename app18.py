@@ -9,7 +9,6 @@ from sentence_transformers import SentenceTransformer
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import torch
 from deep_translator import GoogleTranslator
-import base64
 
 # Load environment variables and configure Google API
 load_dotenv()
@@ -20,54 +19,45 @@ genai.configure(api_key=GOOGLE_API_KEY)
 # Streamlit page configuration
 st.set_page_config(page_title="Krishna Says", page_icon="🕉️", layout="wide")
 
-# Function to encode image to base64
-def get_base64(bin_file):
-    with open(bin_file, 'rb') as f:
-        data = f.read()
-    return base64.b64encode(data).decode()
-
-# Get base64 encoded background image
-background_image = get_base64("path/to/krishna_background.jpg")  # Replace with actual path
-
-# Custom CSS with animations
-st.markdown(f"""
+# Custom CSS with animations and black background
+st.markdown("""
 <style>
-    .stApp {{
-        background-image: url("data:image/png;base64,{background_image}");
-        background-size: cover;
-    }}
-    .stTextInput > div > div > input {{
-        background-color: rgba(255, 255, 255, 0.8);
-    }}
-    .stMarkdown {{
+    .stApp {
+        background-color: #000000;
+    }
+    .stTextInput > div > div > input {
+        background-color: rgba(255, 255, 255, 0.1);
         color: #FFD700;
-    }}
-    .css-1wbqy5l {{
+    }
+    .stMarkdown {
+        color: #FFD700;
+    }
+    .css-1wbqy5l {
         background-color: rgba(25, 25, 112, 0.7);
-    }}
-    @keyframes flute-animation {{
-        0% {{ transform: rotate(0deg); }}
-        50% {{ transform: rotate(5deg); }}
-        100% {{ transform: rotate(0deg); }}
-    }}
-    .flute-icon {{
+    }
+    @keyframes flute-animation {
+        0% { transform: rotate(0deg); }
+        50% { transform: rotate(5deg); }
+        100% { transform: rotate(0deg); }
+    }
+    .flute-icon {
         animation: flute-animation 3s infinite;
         display: inline-block;
-    }}
-    @keyframes peacock-feather-animation {{
-        0% {{ transform: translateY(0px); }}
-        50% {{ transform: translateY(-10px); }}
-        100% {{ transform: translateY(0px); }}
-    }}
-    .peacock-feather {{
+    }
+    @keyframes peacock-feather-animation {
+        0% { transform: translateY(0px); }
+        50% { transform: translateY(-10px); }
+        100% { transform: translateY(0px); }
+    }
+    .peacock-feather {
         animation: peacock-feather-animation 4s infinite;
         display: inline-block;
-    }}
-    .st-emotion-cache-10trblm {{
+    }
+    .st-emotion-cache-10trblm {
         position: relative;
         overflow: hidden;
-    }}
-    .st-emotion-cache-10trblm::after {{
+    }
+    .st-emotion-cache-10trblm::after {
         content: '';
         position: absolute;
         top: 0;
@@ -76,10 +66,18 @@ st.markdown(f"""
         height: 100%;
         background: linear-gradient(90deg, transparent, rgba(255,215,0,0.2), transparent);
         animation: shine 3s infinite;
-    }}
-    @keyframes shine {{
-        100% {{ left: 100%; }}
-    }}
+    }
+    @keyframes shine {
+        100% { left: 100%; }
+    }
+    .stButton > button {
+        background-color: #4B0082;
+        color: #FFD700;
+        border: 2px solid #FFD700;
+    }
+    .stButton > button:hover {
+        background-color: #800080;
+    }
 </style>
 """, unsafe_allow_html=True)
 
