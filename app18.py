@@ -76,7 +76,8 @@ def load_and_process_pdf(pdf_path):
 @st.cache_resource
 def get_vectorstore():
     faiss_index_path = "krishna_says_faiss_index_multilingual"
-    pdf_path = "/content/translationofbg.pdf"  
+    # pdf_path = "/content/translationofbg.pdf" 
+    pdf_path = "https://raw.githubusercontent.com/yess-wee/KrishnaSaysModel/main/translationofbg.pdf"
 
     if os.path.exists(faiss_index_path):
         try:
