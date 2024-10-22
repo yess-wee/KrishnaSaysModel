@@ -26,21 +26,24 @@ st.markdown("""
         background-size: cover;
     }
     .stTextInput > div > div > input {
-        background-color: grey;
+        background-color: rgba(255, 255, 255, 0.8);
         border-radius: 10px;
-        color: orange;  
+        color: black;
     }
-    .stMarkdown, .stTitle, .stHeader, .stSubheader, .stText, .stExpanderHeader, .stCaption {
-        color: orange;  
+   .stMarkdown, .stTitle, .stHeader, .stSubheader, .stText, .stExpanderHeader, .stCaption {
+        color: black;  
     }
     .css-1wbqy5l {
         background-color: rgba(25, 25, 112, 0.7);
     }
-    .stButton button {
+    .stButton {
         background-color: rgba(255, 215, 0, 0.8);
         border: none;
         border-radius: 10px;
-        color: orange;  
+    }
+    .stExpanderHeader {
+        font-weight: bold;
+        color: #FFD700;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -224,8 +227,7 @@ def main():
    
     if query:
         st.write("Your question to Krishna:")
-        st.markdown( f'<p style="color: orange; font-weight: bold;">{query}</p>',
-        unsafe_allow_html=True)
+        st.markdown(f"**{query}**")
        
         with st.spinner("Krishna is contemplating..."):
             llm_model = genai.GenerativeModel('gemini-pro')
@@ -235,18 +237,18 @@ def main():
        
         st.subheader("Krishna says:")
         st.markdown(
-              f'<p style="color: #FFD700; font-style: italic;">{response}</p>',
+            f'<p style="color: #FFD700; font-style: italic;">{response}</p>',
             unsafe_allow_html=True
         )
        
         with st.expander("View Relevant Shloka", expanded=False):
             st.markdown(
-               f'<p style="color: orange; font-style: italic;">{response}</p>',
-               unsafe_allow_html=True
+                f"""<div style="background-color: rgba(0, 0, 0, 0.5); padding: 20px; border-radius: 10px;">
+                    <pre style="color: #FFD700; white-space: pre-wrap;">{context}</pre>
+                </div>""",
+                unsafe_allow_html=True
             )
 
 
 if __name__ == "__main__":
     main()
-
-
