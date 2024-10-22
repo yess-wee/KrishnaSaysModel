@@ -81,7 +81,7 @@ def get_vectorstore():
 
     if os.path.exists(faiss_index_path):
         try:
-            st.info("Loading existing FAISS index...")
+            #st.info("Loading existing FAISS index...")
             return FAISS.load_local(faiss_index_path, sentence_model.encode, allow_dangerous_deserialization=True)
         except Exception as e:
             st.error(f"Error loading existing index: {e}")
@@ -226,7 +226,8 @@ def main():
    
     if query:
         st.write("Your question to Krishna:")
-        st.markdown(f"**{query}**")
+        st.markdown( f'<p style="color: orange; font-weight: bold;">{query}</p>',
+        unsafe_allow_html=True)
        
         with st.spinner("Krishna is contemplating..."):
             llm_model = genai.GenerativeModel('gemini-pro')
@@ -236,16 +237,14 @@ def main():
        
         st.subheader("Krishna says:")
         st.markdown(
-            f'<p style="color: #FFD700; font-style: italic;">{response}</p>',
+              f'<p style="color: #FFD700; font-style: italic;">{response}</p>',
             unsafe_allow_html=True
         )
        
         with st.expander("View Relevant Shloka", expanded=False):
             st.markdown(
-                f"""<div style="background-color: rgba(0, 0, 0, 0.5); padding: 20px; border-radius: 10px;">
-                    <pre style="color: #FFD700; white-space: pre-wrap;">{context}</pre>
-                </div>""",
-                unsafe_allow_html=True
+               f'<p style="color: orange; font-style: italic;">{response}</p>',
+               unsafe_allow_html=True
             )
 
 
