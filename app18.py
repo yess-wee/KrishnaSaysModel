@@ -26,23 +26,21 @@ st.markdown("""
         background-size: cover;
     }
     .stTextInput > div > div > input {
-        background-color: rgba(255, 255, 255, 0.8);
+        background-color: grey;
         border-radius: 10px;
+        color: orange;  
     }
-    .stMarkdown {
-        color: #FFD700;
+    .stMarkdown, .stTitle, .stHeader, .stSubheader, .stText, .stExpanderHeader, .stCaption {
+        color: orange;  
     }
     .css-1wbqy5l {
         background-color: rgba(25, 25, 112, 0.7);
     }
-    .stButton {
+    .stButton button {
         background-color: rgba(255, 215, 0, 0.8);
         border: none;
         border-radius: 10px;
-    }
-    .stExpanderHeader {
-        font-weight: bold;
-        color: #FFD700;
+        color: orange;  
     }
 </style>
 """, unsafe_allow_html=True)
