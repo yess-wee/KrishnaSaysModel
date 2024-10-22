@@ -31,7 +31,7 @@ st.markdown("""
         color: black;
     }
    .stMarkdown, .stTitle, .stHeader, .stSubheader, .stText, .stExpanderHeader, .stCaption {
-        color: black;  
+        color: orange;  
     }
     .css-1wbqy5l {
         background-color: rgba(25, 25, 112, 0.7);
