@@ -130,23 +130,11 @@ def llm_extract_relevant_text(query, context, tokenizer, model):
 
 
         sentence_scores.sort(key=lambda x: x[1], reverse=True)
-        top_sentences = [s[0] for s in sentence_scores[:8]]  # top 10 most relevant sentences
+        top_sentences = [s[0] for s in sentence_scores[:8]]  
         return ' '.join(top_sentences)
     except Exception as e:
         st.error(f"Error extracting relevant text: {e}")
         return ""
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 def extract_shloka_info(text):
