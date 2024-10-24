@@ -101,8 +101,8 @@ def get_vectorstore():
         try:
             vectorstore.save_local(faiss_index_path)
             # List all files in the current directory
-            st.write("Files in the current directory:")
-            st.write(os.listdir('.'))
+            # st.write("Files in the current directory:")
+            # st.write(os.listdir('.'))
 
         except Exception as e:
             st.error(f"Error saving index: {e}")
