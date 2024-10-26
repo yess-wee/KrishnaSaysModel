@@ -1,6 +1,7 @@
 import re
 import streamlit as st
 import os
+import random
 from dotenv import load_dotenv
 import google.generativeai as genai
 from langchain_community.document_loaders import PyPDFLoader
@@ -11,6 +12,7 @@ from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import torch
 from deep_translator import GoogleTranslator
 
+
 load_dotenv()
 os.environ['GOOGLE_API_KEY'] = 'AIzaSyAQmgOq7z-n3yCotriI6-W3wpzIDap6Xqg'
 GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
@@ -18,6 +20,7 @@ genai.configure(api_key=GOOGLE_API_KEY)
 
 st.set_page_config(page_title="Krishna Says", page_icon="🕉️", layout="wide")
 
+# CSS styles
 st.markdown("""
 <style>
     .stApp {
@@ -29,7 +32,7 @@ st.markdown("""
         border-radius: 10px;
         color: black;
     }
-   .stMarkdown, .stTitle, .stHeader, .stSubheader, .stText, .stExpanderHeader, .stCaption {
+    .stMarkdown, .stTitle, .stHeader, .stSubheader, .stText, .stExpanderHeader, .stCaption {
         color: orange;  
     }
     .css-1wbqy5l {
@@ -45,12 +48,11 @@ st.markdown("""
         color: #FFD700;
     }
     .footer {
-        font-size: 0.8rem;
+        font-size: 16px;
         color: #FFD700;
-        font-style: italic;
         text-align: center;
-        padding-top: 20px;
-        margin-top: 40px;
+        font-style: italic;
+        margin-top: 50px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -65,6 +67,7 @@ def load_models():
     except Exception as e:
         st.error(f"Error loading models: {e}")
 
+
 sentence_model, tokenizer, relevance_model = load_models()
 
 @st.cache_resource
@@ -77,6 +80,7 @@ def load_and_process_pdf(pdf_path):
     except Exception as e:
         st.error(f"Error processing PDF: {e}")
         return []
+
 
 @st.cache_resource
 def get_vectorstore():
@@ -112,6 +116,7 @@ def translate(text, source='auto', target='en'):
         st.error(f"Translation error: {e}")
         return text
 
+
 def llm_extract_relevant_text(query, context, tokenizer, model):
     try:
         inputs = tokenizer(query, context, return_tensors="pt", truncation=True, max_length=512, padding=True)
@@ -133,8 +138,8 @@ def llm_extract_relevant_text(query, context, tokenizer, model):
         st.error(f"Error extracting relevant text: {e}")
         return ""
 
+
 def extract_shloka_info(text):
-    """Extract shloka numbers and their corresponding translations from the text."""
     shloka_pattern = r'(?:^|\s)(\d+(?:\.\d+)?)\s*[-–:]?\s*([^.]*(?:\.[^.]*)*)'
     matches = re.finditer(shloka_pattern, text, re.MULTILINE)
    
@@ -147,8 +152,8 @@ def extract_shloka_info(text):
    
     return formatted_shlokas
 
+
 def format_relevant_teachings(context, use_gujarati=False):
-    """Format the relevant teachings with proper structure and translation."""
     shlokas = extract_shloka_info(context)
    
     formatted_text = []
@@ -165,21 +170,19 @@ def format_relevant_teachings(context, use_gujarati=False):
    
     return "\n".join(formatted_text)
 
+
 def rag_function(query, vectorstore, llm_model, tokenizer, relevance_model, use_gujarati=False):
     if vectorstore is None:
         return "Error: Vectorstore not initialized.", ""
 
     try:
         english_query = query if not use_gujarati else translate(query, source='gu', target='en')
-       
         retriever = vectorstore.as_retriever(search_kwargs={"k": 1})
         relevant_docs = retriever.get_relevant_documents(english_query)
         context = "\n".join([doc.page_content for doc in relevant_docs])
-       
         relevant_text = llm_extract_relevant_text(english_query, context, tokenizer, relevance_model)
-       
         formatted_context = format_relevant_teachings(context, use_gujarati)
-       
+
         prompt = f"""
         Based on Krishna's teachings, answer the following question using the given context.
         If the answer is not in the context, draw from Krishna's wisdom to provide guidance.
@@ -192,7 +195,6 @@ def rag_function(query, vectorstore, llm_model, tokenizer, relevance_model, use_
         """
        
         response = llm_model.generate_content(prompt).text
-       
         if use_gujarati:
             response = translate(response, source='en', target='gu')
        
@@ -202,17 +204,17 @@ def rag_function(query, vectorstore, llm_model, tokenizer, relevance_model, use_
         st.error(f"Error in RAG function: {e}")
         return "Error processing your question.", ""
 
+
 def main():
     st.title("Krishna Says")
-   
     vectorstore = get_vectorstore()
 
     query = st.text_input(
-        "Ask Krishna for guidance:" if not st.session_state.get("use_gujarati", False) else "તમારો પ્રશ્ન ગુજરાતીમાં પૂછો:",
+        "Ask Krishna for guidance:" if not use_gujarati else "તમારો પ્રશ્ન ગુજરાતીમાં પૂછો:",
         ""
     )
-  
-    use_gujarati = st.checkbox("Ask in Gujarati", key="use_gujarati")
+
+    use_gujarati = st.checkbox("Ask in Gujarati", key="gujarati_checkbox")
 
     if query:
         st.write("Your question to Krishna:")
@@ -232,16 +234,29 @@ def main():
        
         with st.expander("View Relevant Shloka", expanded=False):
             st.markdown(
-                f"""<div style="background-color: rgba(0, 0, 0, 0.5); padding: 20px; border-radius: 10px;">
-                    <pre style="color: #FFD700; white-space: pre-wrap;">{context}</pre>
-                </div>""",
+                f"""<div style="background-color: rgba(0, 0, 128, 0.2); padding: 10px; border-radius: 10px;">{context}</div>""",
                 unsafe_allow_html=True
             )
 
+    quotes = [
+        "You are what you believe in. You become that which you believe you can become.",
+        "You are only entitled to the action, never to its fruits.",
+        "Death is as sure for that which is born, as birth is for that which is dead. Therefore grieve not for what is inevitable.",
+        "One who sees inaction in action, and action in inaction, is intelligent among men.",
+        "Arise, slay thy enemies, enjoy a prosperous kingdom.",
+        "It is better to live your own destiny imperfectly than to live an imitation of somebody else's life with perfection.",
+        "Through selfless service, you will always be fruitful and find the fulfillment of your desires.",
+        "Remember, I am always with you, don't be afraid :)",
+        "Hare Krishna Hare Krishna, Krishna Krishna Hare Hare, Hare Raam Hare Raam, Raam Raam Hare Hare.",
+        "Jai Shree Krishna"
+    ]
+
+    footer_quote = random.choice(quotes)
     st.markdown(
-        '<div class="footer">‘This chatbot draws its wisdom from Krishna’s teachings to provide solace and guidance.’</div>',
+        f'<div class="footer">‘{footer_quote}’</div>',
         unsafe_allow_html=True
     )
+
 
 if __name__ == "__main__":
     main()
