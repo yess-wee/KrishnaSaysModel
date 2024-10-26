@@ -45,6 +45,14 @@ st.markdown("""
         font-weight: bold;
         color: #FFD700;
     }
+    .footer {
+        font-size: 0.8rem;
+        color: #FFD700;
+        font-style: italic;
+        text-align: center;
+        padding-top: 20px;
+        margin-top: 40px;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -58,9 +66,7 @@ def load_models():
     except Exception as e:
         st.error(f"Error loading models: {e}")
 
-
 sentence_model, tokenizer, relevance_model = load_models()
-
 
 @st.cache_resource
 def load_and_process_pdf(pdf_path):
@@ -73,20 +79,16 @@ def load_and_process_pdf(pdf_path):
         st.error(f"Error processing PDF: {e}")
         return []
 
-
 @st.cache_resource
 def get_vectorstore():
     faiss_index_path = "krishna_says_faiss_index_multilingual"
-    # pdf_path = "/content/translationofbg.pdf" 
     pdf_path = "https://raw.githubusercontent.com/yess-wee/KrishnaSaysModel/main/translationofbg.pdf"
 
     if os.path.exists(faiss_index_path):
         try:
-            #st.info("Loading existing FAISS index...")
             return FAISS.load_local(faiss_index_path, sentence_model.encode, allow_dangerous_deserialization=True)
         except Exception as e:
             st.error(f"Error loading existing index: {e}")
-
 
     with st.spinner("Processing pre-uploaded PDF and creating index..."):
         docs = load_and_process_pdf(pdf_path)
@@ -97,18 +99,12 @@ def get_vectorstore():
         embeddings = sentence_model.encode(texts)
         vectorstore = FAISS.from_embeddings(zip(texts, embeddings), sentence_model.encode)
 
-
         try:
             vectorstore.save_local(faiss_index_path)
-            # List all files in the current directory
-            # st.write("Files in the current directory:")
-            # st.write(os.listdir('.'))
-
         except Exception as e:
             st.error(f"Error saving index: {e}")
        
         return vectorstore
-
 
 def translate(text, source='auto', target='en'):
     try:
@@ -117,13 +113,11 @@ def translate(text, source='auto', target='en'):
         st.error(f"Translation error: {e}")
         return text
 
-
 def llm_extract_relevant_text(query, context, tokenizer, model):
     try:
         inputs = tokenizer(query, context, return_tensors="pt", truncation=True, max_length=512, padding=True)
         outputs = model(**inputs)
         relevance_scores = torch.nn.functional.softmax(outputs.logits, dim=1)[:, 1]
-
 
         sentences = context.split('.')
         sentence_scores = []
@@ -133,14 +127,12 @@ def llm_extract_relevant_text(query, context, tokenizer, model):
             score = torch.nn.functional.softmax(outputs.logits, dim=1)[0, 1].item()
             sentence_scores.append((sentence, score))
 
-
         sentence_scores.sort(key=lambda x: x[1], reverse=True)
         top_sentences = [s[0] for s in sentence_scores[:8]]  
         return ' '.join(top_sentences)
     except Exception as e:
         st.error(f"Error extracting relevant text: {e}")
         return ""
-
 
 def extract_shloka_info(text):
     """Extract shloka numbers and their corresponding translations from the text."""
@@ -155,7 +147,6 @@ def extract_shloka_info(text):
             formatted_shlokas.append((shloka_num, content))
    
     return formatted_shlokas
-
 
 def format_relevant_teachings(context, use_gujarati=False):
     """Format the relevant teachings with proper structure and translation."""
@@ -175,11 +166,9 @@ def format_relevant_teachings(context, use_gujarati=False):
    
     return "\n".join(formatted_text)
 
-
 def rag_function(query, vectorstore, llm_model, tokenizer, relevance_model, use_gujarati=False):
     if vectorstore is None:
         return "Error: Vectorstore not initialized.", ""
-
 
     try:
         english_query = query if not use_gujarati else translate(query, source='gu', target='en')
@@ -198,7 +187,6 @@ def rag_function(query, vectorstore, llm_model, tokenizer, relevance_model, use_
         Respond in a humble and spiritual manner, offering solace and enlightenment to the seeker.
         Include specific references to relevant shlokas when possible.
 
-
         Context: {relevant_text}
         Question: {english_query}
         Krishna's answer:
@@ -215,14 +203,12 @@ def rag_function(query, vectorstore, llm_model, tokenizer, relevance_model, use_
         st.error(f"Error in RAG function: {e}")
         return "Error processing your question.", ""
 
-
 def main():
     st.title("Krishna Says")
    
     vectorstore = get_vectorstore()
   
-    st.sidebar.title("Language Selection")
-    use_gujarati = st.sidebar.checkbox("Ask in Gujarati")
+    use_gujarati = st.checkbox("Ask in Gujarati")
 
     query = st.text_input(
         "Ask Krishna for guidance:" if not use_gujarati else "તમારો પ્રશ્ન ગુજરાતીમાં પૂછો:",
@@ -253,6 +239,10 @@ def main():
                 unsafe_allow_html=True
             )
 
+    st.markdown(
+        '<div class="footer">‘This chatbot draws its wisdom from Krishna’s teachings to provide solace and guidance.’</div>',
+        unsafe_allow_html=True
+    )
 
 if __name__ == "__main__":
     main()
