@@ -11,7 +11,6 @@ from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import torch
 from deep_translator import GoogleTranslator
 
-
 load_dotenv()
 os.environ['GOOGLE_API_KEY'] = 'AIzaSyAQmgOq7z-n3yCotriI6-W3wpzIDap6Xqg'
 GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
@@ -207,14 +206,14 @@ def main():
     st.title("Krishna Says")
    
     vectorstore = get_vectorstore()
-  
-    use_gujarati = st.checkbox("Ask in Gujarati")
 
     query = st.text_input(
-        "Ask Krishna for guidance:" if not use_gujarati else "તમારો પ્રશ્ન ગુજરાતીમાં પૂછો:",
+        "Ask Krishna for guidance:" if not st.session_state.get("use_gujarati", False) else "તમારો પ્રશ્ન ગુજરાતીમાં પૂછો:",
         ""
     )
-   
+  
+    use_gujarati = st.checkbox("Ask in Gujarati", key="use_gujarati")
+
     if query:
         st.write("Your question to Krishna:")
         st.markdown(f"**{query}**")
