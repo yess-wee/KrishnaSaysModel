@@ -156,13 +156,17 @@ def rag_function(query, vectorstore, llm_model, tokenizer, relevance_model, use_
 
     try:
         english_query = query if not use_gujarati else translate(query, source='gu', target='en')
-       
+        
         retriever = vectorstore.as_retriever(search_kwargs={"k": 1})
         relevant_docs = retriever.get_relevant_documents(english_query)
         context = "\n".join([doc.page_content for doc in relevant_docs])
-       
+        
         relevant_text = llm_extract_relevant_text(english_query, context, tokenizer, relevance_model)
-       
+        
+        # Translate relevant_text to Gujarati if required
+        if use_gujarati:
+            relevant_text = translate(relevant_text, source='en', target='gu')
+        
         prompt = f"""
         Based on Krishna's teachings, answer the following question using the given context.
         If the answer is not in the context, draw from Krishna's wisdom to provide guidance.
@@ -173,14 +177,14 @@ def rag_function(query, vectorstore, llm_model, tokenizer, relevance_model, use_
         Question: {english_query}
         Krishna's answer:
         """
-       
+        
         response = llm_model.generate_content(prompt).text
-       
+        
         if use_gujarati:
             response = translate(response, source='en', target='gu')
-       
-        return response, relevant_text
-       
+        
+        return response, relevant_text  # Now, relevant_text is in Gujarati if use_gujarati=True
+        
     except Exception as e:
         st.error(f"Error in RAG function: {e}")
         return "Error retrieving guidance from Krishna.", ""
