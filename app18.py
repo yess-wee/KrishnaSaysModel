@@ -129,11 +129,13 @@ def translate(text, source='auto', target='en'):
         st.error(f"Translation error: {e}")
         return text
 
+
 def llm_extract_relevant_text(query, context, tokenizer, model):
     try:
         inputs = tokenizer(query, context, return_tensors="pt", truncation=True, max_length=512, padding=True)
         outputs = model(**inputs)
         relevance_scores = torch.nn.functional.softmax(outputs.logits, dim=1)[:, 1]
+
 
         sentences = context.split('.')
         sentence_scores = []
@@ -143,12 +145,48 @@ def llm_extract_relevant_text(query, context, tokenizer, model):
             score = torch.nn.functional.softmax(outputs.logits, dim=1)[0, 1].item()
             sentence_scores.append((sentence, score))
 
+
         sentence_scores.sort(key=lambda x: x[1], reverse=True)
         top_sentences = [s[0] for s in sentence_scores[:8]]  
         return ' '.join(top_sentences)
     except Exception as e:
         st.error(f"Error extracting relevant text: {e}")
         return ""
+
+
+def extract_shloka_info(text):
+    """Extract shloka numbers and their corresponding translations from the text."""
+    shloka_pattern = r'(?:^|\s)(\d+(?:\.\d+)?)\s*[-–:]?\s*([^.]*(?:\.[^.]*)*)'
+    matches = re.finditer(shloka_pattern, text, re.MULTILINE)
+   
+    formatted_shlokas = []
+    for match in matches:
+        shloka_num = match.group(1)
+        content = match.group(2).strip()
+        if content:  
+            formatted_shlokas.append((shloka_num, content))
+   
+    return formatted_shlokas
+
+
+def format_relevant_teachings(context, use_gujarati=False):
+    """Format the relevant teachings with proper structure and translation."""
+    shlokas = extract_shloka_info(context)
+   
+    formatted_text = []
+    for shloka_num, content in shlokas:
+        if use_gujarati:
+            try:
+                translated_content = GoogleTranslator(source='en', target='gu').translate(content)
+                formatted_text.append(f"શ્લોક {shloka_num}:\n{translated_content}\n")
+            except Exception as e:
+                st.error(f"Translation error for shloka {shloka_num}: {e}")
+                formatted_text.append(f"શ્લોક {shloka_num}:\n{content}\n")
+        else:
+            formatted_text.append(f"Shloka {shloka_num}:\n{content}\n")
+   
+    return "\n".join(formatted_text)
+
 
 def rag_function(query, vectorstore, llm_model, tokenizer, relevance_model, use_gujarati=False):
     if vectorstore is None:
