@@ -12,12 +12,17 @@ from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import torch
 from deep_translator import GoogleTranslator
 
-
+# Load environment variables
 load_dotenv()
-os.environ['GOOGLE_API_KEY'] = 'AIzaSyAQmgOq7z-n3yCotriI6-W3wpzIDap6Xqg'
-GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
-genai.configure(api_key=GOOGLE_API_KEY)
+GOOGLE_API_KEY = os.getenv('AIzaSyAQmgOq7z-n3yCotriI6-W3wpzIDap6Xqg')
 
+# Check for Google API Key
+if not GOOGLE_API_KEY:
+    st.error("Google API Key not found. Please set the key in environment variables.")
+else:
+    genai.configure(api_key=GOOGLE_API_KEY)
+
+# Streamlit page configuration
 st.set_page_config(page_title="Krishna Says", page_icon="🕉️", layout="wide")
 
 # CSS styles
@@ -38,10 +43,11 @@ st.markdown("""
     .css-1wbqy5l {
         background-color: rgba(25, 25, 112, 0.7);
     }
-    .stButton {
+    .stButton button {
         background-color: rgba(255, 215, 0, 0.8);
         border: none;
         border-radius: 10px;
+        color: black;
     }
     .stExpanderHeader {
         font-weight: bold;
@@ -66,7 +72,7 @@ def load_models():
         return sentence_model, tokenizer, model
     except Exception as e:
         st.error(f"Error loading models: {e}")
-
+        return None, None, None
 
 sentence_model, tokenizer, relevance_model = load_models()
 
@@ -80,7 +86,6 @@ def load_and_process_pdf(pdf_path):
     except Exception as e:
         st.error(f"Error processing PDF: {e}")
         return []
-
 
 @st.cache_resource
 def get_vectorstore():
@@ -116,13 +121,8 @@ def translate(text, source='auto', target='en'):
         st.error(f"Translation error: {e}")
         return text
 
-
 def llm_extract_relevant_text(query, context, tokenizer, model):
     try:
-        inputs = tokenizer(query, context, return_tensors="pt", truncation=True, max_length=512, padding=True)
-        outputs = model(**inputs)
-        relevance_scores = torch.nn.functional.softmax(outputs.logits, dim=1)[:, 1]
-
         sentences = context.split('.')
         sentence_scores = []
         for sentence in sentences:
@@ -132,12 +132,11 @@ def llm_extract_relevant_text(query, context, tokenizer, model):
             sentence_scores.append((sentence, score))
 
         sentence_scores.sort(key=lambda x: x[1], reverse=True)
-        top_sentences = [s[0] for s in sentence_scores[:8]]  
+        top_sentences = [s[0] for s in sentence_scores[:8]]
         return ' '.join(top_sentences)
     except Exception as e:
         st.error(f"Error extracting relevant text: {e}")
         return ""
-
 
 def extract_shloka_info(text):
     shloka_pattern = r'(?:^|\s)(\d+(?:\.\d+)?)\s*[-–:]?\s*([^.]*(?:\.[^.]*)*)'
@@ -152,10 +151,8 @@ def extract_shloka_info(text):
    
     return formatted_shlokas
 
-
 def format_relevant_teachings(context, use_gujarati=False):
     shlokas = extract_shloka_info(context)
-   
     formatted_text = []
     for shloka_num, content in shlokas:
         if use_gujarati:
@@ -169,7 +166,6 @@ def format_relevant_teachings(context, use_gujarati=False):
             formatted_text.append(f"Shloka {shloka_num}:\n{content}\n")
    
     return "\n".join(formatted_text)
-
 
 def rag_function(query, vectorstore, llm_model, tokenizer, relevance_model, use_gujarati=False):
     if vectorstore is None:
@@ -204,17 +200,15 @@ def rag_function(query, vectorstore, llm_model, tokenizer, relevance_model, use_
         st.error(f"Error in RAG function: {e}")
         return "Error processing your question.", ""
 
-
 def main():
     st.title("Krishna Says")
+    use_gujarati = st.checkbox("Ask in Gujarati", key="gujarati_checkbox")
     vectorstore = get_vectorstore()
 
     query = st.text_input(
         "Ask Krishna for guidance:" if not use_gujarati else "તમારો પ્રશ્ન ગુજરાતીમાં પૂછો:",
         ""
     )
-
-    use_gujarati = st.checkbox("Ask in Gujarati", key="gujarati_checkbox")
 
     if query:
         st.write("Your question to Krishna:")
@@ -256,7 +250,6 @@ def main():
         f'<div class="footer">‘{footer_quote}’</div>',
         unsafe_allow_html=True
     )
-
 
 if __name__ == "__main__":
     main()
