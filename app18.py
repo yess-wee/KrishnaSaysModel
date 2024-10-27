@@ -14,7 +14,7 @@ import random
 
 # Load environment variables
 load_dotenv()
-os.environ['GOOGLE_API_KEY'] = 'YOUR_GOOGLE_API_KEY'
+os.environ['GOOGLE_API_KEY'] = 'AIzaSyAQmgOq7z-n3yCotriI6-W3wpzIDap6Xqg'
 GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
 genai.configure(api_key=GOOGLE_API_KEY)
 
@@ -154,35 +154,6 @@ def llm_extract_relevant_text(query, context, tokenizer, model):
         st.error(f"Error extracting relevant text: {e}")
         return ""
 
-def extract_shloka_info(text):
-    shloka_pattern = r'(?:^|\s)(\d+(?:\.\d+)?)\s*[-–:]?\s*([^.]*(?:\.[^.]*)*)'
-    matches = re.finditer(shloka_pattern, text, re.MULTILINE)
-   
-    formatted_shlokas = []
-    for match in matches:
-        shloka_num = match.group(1)
-        content = match.group(2).strip()
-        if content:  
-            formatted_shlokas.append((shloka_num, content))
-   
-    return formatted_shlokas
-
-def format_relevant_teachings(context, use_gujarati=False):
-    shlokas = extract_shloka_info(context)
-    formatted_text = []
-    for shloka_num, content in shlokas:
-        if use_gujarati:
-            try:
-                translated_content = GoogleTranslator(source='en', target='gu').translate(content)
-                formatted_text.append(f"શ્લોક {shloka_num}:\n{translated_content}\n")
-            except Exception as e:
-                st.error(f"Translation error for shloka {shloka_num}: {e}")
-                formatted_text.append(f"શ્લોક {shloka_num}:\n{content}\n")
-        else:
-            formatted_text.append(f"Shloka {shloka_num}:\n{content}\n")
-   
-    return "\n".join(formatted_text)
-
 def rag_function(query, vectorstore, llm_model, tokenizer, relevance_model, use_gujarati=False):
     if vectorstore is None:
         return "Error: Vectorstore not initialized.", ""
@@ -195,7 +166,6 @@ def rag_function(query, vectorstore, llm_model, tokenizer, relevance_model, use_
         context = "\n".join([doc.page_content for doc in relevant_docs])
        
         relevant_text = llm_extract_relevant_text(english_query, context, tokenizer, relevance_model)
-        formatted_context = format_relevant_teachings(context, use_gujarati)
        
         prompt = f"""
         Based on Krishna's teachings, answer the following question using the given context.
@@ -213,7 +183,7 @@ def rag_function(query, vectorstore, llm_model, tokenizer, relevance_model, use_
         if use_gujarati:
             response = translate(response, source='en', target='gu')
        
-        return response, formatted_context
+        return response, relevant_text
        
     except Exception as e:
         st.error(f"Error in RAG function: {e}")
@@ -227,8 +197,12 @@ def main():
    
     query = st.text_input("Ask Krishna for guidance:")
    
-    use_gujarati = st.checkbox("Language selection: Ask in Gujarati")
-   
+    col1, col2 = st.columns([1, 9])
+    with col1:
+        use_gujarati = st.checkbox("Language selection: ")
+    with col2:
+        st.write("Ask in Gujarati")
+
     if query:
         st.write("Your question to Krishna:")
         st.markdown(f"**{query}**")
@@ -247,12 +221,11 @@ def main():
        
         with st.expander("View Relevant Shloka", expanded=False):
             st.markdown(
-                f"""<div style="background-color: rgba(0, 0, 0, 0.5); padding: 20px; border-radius: 10px;">
-                    <pre style="color: #FFD700; white-space: pre-wrap;">{context}</pre>
-                </div>""",
+                f"""<div style="background-color: rgba(25, 25, 112, 0.7); border-radius: 10px;
+                    padding: 10px; color: white;">{context}</div>""",
                 unsafe_allow_html=True
             )
-
+   
     display_footer()
 
 if __name__ == "__main__":
