@@ -12,13 +12,11 @@ import torch
 from deep_translator import GoogleTranslator
 import random
 
-# Load environment variables
 load_dotenv()
 os.environ['GOOGLE_API_KEY'] = 'AIzaSyAQmgOq7z-n3yCotriI6-W3wpzIDap6Xqg'
 GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
 genai.configure(api_key=GOOGLE_API_KEY)
 
-# Quotes for the footer
 quotes = [
     "You are what you believe in. You become that which you believe you can become.",
     "You are only entitled to the action, never to its fruits.",
@@ -32,10 +30,9 @@ quotes = [
     "Jai Shree Krishna"
 ]
 
-# Set up Streamlit configuration
 st.set_page_config(page_title="Krishna Says", page_icon="🕉️", layout="wide")
 
-# Custom CSS for background and styling
+
 st.markdown("""
 <style>
     .stApp {
@@ -65,7 +62,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Function to display a random quote in the footer
 def display_footer():
     random_quote = random.choice(quotes)
     st.markdown(
@@ -189,7 +185,6 @@ def rag_function(query, vectorstore, llm_model, tokenizer, relevance_model, use_
         st.error(f"Error in RAG function: {e}")
         return "Error retrieving guidance from Krishna.", ""
 
-# Main app function
 def main():
     st.title("Krishna Says")
    
