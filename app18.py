@@ -136,22 +136,29 @@ def llm_extract_relevant_text(query, context, tokenizer, model):
         outputs = model(**inputs)
         relevance_scores = torch.nn.functional.softmax(outputs.logits, dim=1)[:, 1]
 
-
-        sentences = context.split('.')
+        # Split sentences more carefully and clean up any repeated numbers or artifacts
+        sentences = re.split(r'(?<!\d)\. |\n', context)  # Splits by period or new line without splitting decimal numbers
         sentence_scores = []
+        
         for sentence in sentences:
-            inputs = tokenizer(query, sentence, return_tensors="pt", truncation=True, max_length=512, padding=True)
+            # Remove leading numbers or extra whitespace
+            clean_sentence = re.sub(r'^\d+\s*', '', sentence).strip()
+            if not clean_sentence:
+                continue  # Skip empty sentences
+
+            inputs = tokenizer(query, clean_sentence, return_tensors="pt", truncation=True, max_length=512, padding=True)
             outputs = model(**inputs)
             score = torch.nn.functional.softmax(outputs.logits, dim=1)[0, 1].item()
-            sentence_scores.append((sentence, score))
+            sentence_scores.append((clean_sentence, score))
 
-
+        # Sort by score and select top sentences
         sentence_scores.sort(key=lambda x: x[1], reverse=True)
         top_sentences = [s[0] for s in sentence_scores[:8]]  
         return ' '.join(top_sentences)
     except Exception as e:
         st.error(f"Error extracting relevant text: {e}")
         return ""
+
 
 
 def extract_shloka_info(text):
@@ -236,9 +243,8 @@ def main():
    
     col1, col2 = st.columns([1, 9])
     with col1:
-        use_gujarati = st.checkbox("Language selection: ")
-    with col2:
-        st.write("Ask in Gujarati")
+        use_gujarati = st.checkbox("Ask in Gujarati")
+    
 
     if query:
         st.write("Your question to Krishna:")
