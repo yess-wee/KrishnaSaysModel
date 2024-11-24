@@ -13,7 +13,8 @@ from deep_translator import GoogleTranslator
 import random
 
 load_dotenv()
-os.environ['GOOGLE_API_KEY'] = 'AIzaSyAQmgOq7z-n3yCotriI6-W3wpzIDap6Xqg'
+# os.environ['GOOGLE_API_KEY'] = 'AIzaSyAQmgOq7z-n3yCotriI6-W3wpzIDap6Xqg'
+os.environ['GOOGLE_API_KEY'] = 'AIzaSyAV1opSnseVjUsxmCa2QStiuwgFTVktqdc'
 GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
 genai.configure(api_key=GOOGLE_API_KEY)
 
