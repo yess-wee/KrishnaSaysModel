@@ -14,7 +14,7 @@ import random
 
 load_dotenv()
 # os.environ['GOOGLE_API_KEY'] = 'AIzaSyAQmgOq7z-n3yCotriI6-W3wpzIDap6Xqg'
-os.environ['GOOGLE_API_KEY'] = 'AIzaSyAV1opSnseVjUsxmCa2QStiuwgFTVktqdc'
+os.environ['GOOGLE_API_KEY'] = 'AIzaSyCC-s82WIk9pDUDeKJMrXvjPwrIiqPMDWM'
 GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
 genai.configure(api_key=GOOGLE_API_KEY)
 
